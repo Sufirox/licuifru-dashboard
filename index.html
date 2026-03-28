@@ -109,8 +109,6 @@
   .dc-val{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--green-dark);line-height:1;}
   .dc-lbl{font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.5px;}
 
-  footer{margin-top:32px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:10px;color:var(--muted);letter-spacing:1px;flex-wrap:wrap;gap:8px;}
-
   .kpi,.card,.desglose{opacity:0;transform:translateY(10px);animation:fu .4s forwards;}
   @keyframes fu{to{opacity:1;transform:translateY(0);}}
   .kpi:nth-child(1){animation-delay:.04s}.kpi:nth-child(2){animation-delay:.08s}
@@ -226,8 +224,8 @@
       </div>
     </div>
     <div class="header-right">
-      <div class="period">AGO 2025 — FEB 2026</div>
-      <div class="status"><span class="dot"></span>DATOS ACTIVOS</div>
+      <div class="status"><span class="dot"></span><span class="data-ind">DATOS ACTIVOS</span></div>
+      <div class="period" id="lastSync" style="font-size:10px;margin-top:3px"></div>
     </div>
   </header>
 
@@ -581,14 +579,25 @@
 
     <!-- GASTOS > POR MES -->
     <div id="subtab-gastos-mes">
-      <div class="kpis">
+      <!-- Tabla mensual de gastos (primero) -->
+      <div class="card" style="animation-delay:.18s">
+        <div class="card-t">Desglose Mensual — Ingresos, Gastos y Utilidad</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:14px;padding:8px 12px;background:var(--green-pale);border-radius:6px;border:1px solid var(--border)">
+          💡 <strong>Neto</strong> = Bruto − Clip − IVA. <strong>Utilidad</strong> = Neto − Gastos Variables − Gastos Fijos. <strong>Margen</strong> = Utilidad ÷ Neto × 100.
+        </div>
+        <div style="overflow-x:auto">
+          <table id="tblGastosMes" style="width:100%;border-collapse:collapse;font-size:12px;"></table>
+        </div>
+      </div>
+
+      <div class="kpis" style="margin-top:20px">
         <div class="kpi red"><div class="kpi-lbl">Gastos Variables Total</div><div class="kpi-val red" id="gv-total">—</div><div class="kpi-sub">Materia prima · Período completo</div></div>
         <div class="kpi red"><div class="kpi-lbl">Gastos Fijos Mensuales</div><div class="kpi-val red" id="gf-total">—</div><div class="kpi-sub" id="gf-total-sub">—</div></div>
         <div class="kpi red"><div class="kpi-lbl">Gastos Totales</div><div class="kpi-val red" id="gt-total">—</div><div class="kpi-sub">Variables + Fijos</div></div>
         <div class="kpi green"><div class="kpi-lbl">Utilidad Neta</div><div class="kpi-val green" id="gu-total">—</div><div class="kpi-sub" id="gu-total-sub">—</div></div>
       </div>
 
-      <div class="card" style="animation-delay:.22s">
+      <div class="card" style="margin-top:20px;animation-delay:.22s">
         <div class="card-t">Gastos Variables vs Fijos por Mes — MXN</div>
         <canvas id="cGastosMes" height="120"></canvas>
         <div class="legend" style="margin-top:14px">
@@ -609,17 +618,6 @@
       <div class="card" style="margin-top:20px">
         <div class="card-t">Utilidad Mensual (Neto − Gastos)</div>
         <canvas id="cUtilidad" height="120"></canvas>
-      </div>
-
-      <!-- Tabla mensual de gastos -->
-      <div class="card" style="margin-top:20px">
-        <div class="card-t">Desglose Mensual — Ingresos, Gastos y Utilidad</div>
-        <div style="font-size:10px;color:var(--muted);margin-bottom:14px;padding:8px 12px;background:var(--green-pale);border-radius:6px;border:1px solid var(--border)">
-          💡 <strong>Neto</strong> = Bruto − Clip − IVA. <strong>Utilidad</strong> = Neto − Gastos Variables − Gastos Fijos. <strong>Margen</strong> = Utilidad ÷ Neto × 100.
-        </div>
-        <div style="overflow-x:auto">
-          <table id="tblGastosMes" style="width:100%;border-collapse:collapse;font-size:12px;"></table>
-        </div>
       </div>
     </div><!-- /subtab-gastos-mes -->
 
@@ -656,11 +654,7 @@
 
   </div><!-- /tab-gastos -->
 
-  <footer>
-    <span>LICUIFRU · DASHBOARD V2.0</span>
-    <span>CLIP: 3.6% + IVA · EN VIVO</span>
-    <span>AGO 2025 – FEB 2026 · 2,159 VENTAS</span>
-  </footer>
+
 </div>
 
 <script>
@@ -913,7 +907,7 @@ async function loadData(){
     console.log('✅ Datos cargados desde fallback:', DAILY.length, 'días,', totalCount, 'ventas');
     // Change indicator to show offline mode
     const di = document.querySelector('.data-ind');
-    if(di){ di.textContent = '● DATOS OFFLINE'; di.style.color = '#E07B12'; }
+    if(di){ di.textContent = 'DATOS OFFLINE'; di.style.color = '#E07B12'; }
   } catch(e2){
     console.error('❌ Error en fallback:', e2);
     showLoadError('Error en datos de respaldo: '+e2.message);
@@ -1011,15 +1005,18 @@ function updateResumenKPIs(){
   }
 
   // Footer
-  const footer = document.querySelector('footer');
-  if(footer){
-    const spans = footer.querySelectorAll('span');
-    if(spans[2]) spans[2].textContent = `${MIN_DATE.slice(0,4)==MAX_DATE.slice(0,4)?'':MIN_DATE.slice(0,4)+' – '}${MAX_DATE.slice(0,4)} · ${totalCount.toLocaleString()} VENTAS`;
-  }
-
-  // Datos Activos indicator
+  // Datos Activos indicator + última sincronización
   const di = document.querySelector('.data-ind');
-  if(di) di.textContent = '● DATOS EN VIVO';
+  if(di) di.textContent = 'DATOS EN VIVO';
+  const syncEl = document.getElementById('lastSync');
+  if(syncEl){
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    const dd = String(now.getDate()).padStart(2,'0');
+    const mo = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][now.getMonth()];
+    syncEl.textContent = `Última sync: ${dd} ${mo} ${now.getFullYear()} · ${hh}:${mm}`;
+  }
 }
 
 const G='#2A7A3B',GL='#3DAA50',GLL='#88B894',AM='#E07B12',RED='#C0392B',BG='#EEF5F0';
