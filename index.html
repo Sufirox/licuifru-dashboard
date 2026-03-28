@@ -559,10 +559,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     </div>
   </div>
 
-  <!-- VENTAS POR DÍA DEL PERÍODO -->
+  <!-- VENTAS POR DÍA DEL PERÍODO — MATUTINO VS VESPERTINO -->
   <div class="card" style="margin-top:14px">
-    <div class="card-t">Ventas por día de la semana — período seleccionado</div>
-    <canvas id="cDiaDet" height="160"></canvas>
+    <div class="card-t">Matutino vs Vespertino por día de la semana — período seleccionado</div>
+    <canvas id="cDiaDet" height="180"></canvas>
+    <div class="legend" style="margin-top:12px">
+      <div class="li"><div class="ld" style="background:#2A7A3B"></div>☀ Matutino</div>
+      <div class="li"><div class="ld" style="background:#E07B12"></div>🌙 Vespertino</div>
+    </div>
   </div>
 
   <!-- HEATMAP DEL PERÍODO -->
@@ -1470,17 +1474,31 @@ function updateDesglose(){
   document.getElementById('det-mat-tkt').textContent = fMatC > 0 ? fmt2(fMat/fMatC) : '—';
   document.getElementById('det-ves-tkt').textContent = fVesC > 0 ? fmt2(fVes/fVesC) : '—';
 
-  // ── VENTAS POR DÍA del período ──
-  const diasLabels = ['Lunes','Martes','Miérc.','Jueves','Viernes','Sábado','Domingo'];
-  const diasFilt = [0,0,0,0,0,0,0];
-  filteredTxns.forEach(t => { diasFilt[t.dow] = round2(diasFilt[t.dow] + t.monto); });
+  // ── MATUTINO VS VESPERTINO POR DÍA DE LA SEMANA ──
+  const diasLabels = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const diasMat = [0,0,0,0,0,0];
+  const diasVes = [0,0,0,0,0,0];
+  filteredTxns.forEach(t => {
+    if(t.dow < 6){
+      if(t.hora < 15){ diasMat[t.dow] = round2(diasMat[t.dow] + t.monto); }
+      else { diasVes[t.dow] = round2(diasVes[t.dow] + t.monto); }
+    }
+  });
   if(charts.diaDet){ charts.diaDet.destroy(); }
   const cDiaEl = document.getElementById('cDiaDet');
   if(cDiaEl){
     charts.diaDet = new Chart(cDiaEl, {
-      type:'bar', data:{labels:diasLabels, datasets:[{data:diasFilt, backgroundColor:diasFilt.map((_,i)=>i<2?G:GL), borderRadius:5, borderSkipped:false}]},
-      options:{responsive:true, indexAxis:'y', plugins:{legend:{display:false}, tooltip:{...TT, callbacks:{label:c=>` ${fmt(c.parsed.x)}`}}},
-        scales:{x:{grid:{color:'rgba(42,122,59,0.07)'},border:{display:false},ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k'}},y:{grid:{display:false},border:{display:false}}}}
+      type:'line', data:{labels:diasLabels, datasets:[
+        {label:'Matutino',data:diasMat,borderColor:G,backgroundColor:'rgba(42,122,59,0.12)',fill:true,tension:.35,pointRadius:4,pointBackgroundColor:G,pointHoverRadius:6,borderWidth:2.5},
+        {label:'Vespertino',data:diasVes,borderColor:AM,backgroundColor:'rgba(224,123,18,0.12)',fill:true,tension:.35,pointRadius:4,pointBackgroundColor:AM,pointHoverRadius:6,borderWidth:2.5},
+      ]},
+      options:{responsive:true, interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:false}, tooltip:{...TT, callbacks:{
+          title:c=>c[0].label,
+          label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}`
+        }}},
+        scales:{x:{grid:{display:false},border:{display:false}},y:{grid:{color:'rgba(42,122,59,0.07)'},border:{display:false},ticks:{callback:v=>'$'+(v/1000).toFixed(1)+'k'}}}
+      }
     });
   }
 
