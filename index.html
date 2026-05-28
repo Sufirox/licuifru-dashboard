@@ -1704,9 +1704,9 @@ function renderHMFiltered(hmAgg){
 
 const MONTH_EN_TO_KEY = {
   'August':'2025-08','September':'2025-09','October':'2025-10','November':'2025-11','December':'2025-12',
-  'January':'2026-01','February':'2026-02','March':'2026-03'
+  'January':'2026-01','February':'2026-02','March':'2026-03','April':'2026-04','May':'2026-05','June':'2026-06'
 };
-const MONTH_KEY_TO_ES = {'2025-08':'Ago 25','2025-09':'Sep 25','2025-10':'Oct 25','2025-11':'Nov 25','2025-12':'Dic 25','2026-01':'Ene 26','2026-02':'Feb 26','2026-03':'Mar 26'};
+const MONTH_KEY_TO_ES = {'2025-08':'Ago 25','2025-09':'Sep 25','2025-10':'Oct 25','2025-11':'Nov 25','2025-12':'Dic 25','2026-01':'Ene 26','2026-02':'Feb 26','2026-03':'Mar 26','2026-04':'Abr 26','2026-05':'May 26','2026-06':'Jun 26'};
 
 function parseMoney(s){
   if(!s) return 0;
@@ -1720,11 +1720,16 @@ async function loadGastos(){
     if(resp.ok){
       const text = await resp.text();
       const results = Papa.parse(text,{header:true,skipEmptyLines:true});
+      const MONTH_NAME_TO_NUM = {'January':'01','February':'02','March':'03','April':'04','May':'05','June':'06','July':'07','August':'08','September':'09','October':'10','November':'11','December':'12'};
       results.data.forEach(r=>{
         const mes = (r.Mes||r.Month||'').trim();
+        const año = (r['Año']||r.Año||r.Year||'').trim();
         const monto = parseMoney(r.Gastos||'');
-        const key = MONTH_EN_TO_KEY[mes];
-        if(key) GASTOS_VAR[key] = monto;
+        const mm = MONTH_NAME_TO_NUM[mes];
+        if(mm && año){
+          const key = año + '-' + mm;
+          GASTOS_VAR[key] = monto;
+        }
       });
       console.log('✅ Gastos variables cargados:', Object.keys(GASTOS_VAR).length, 'meses');
     }
