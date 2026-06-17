@@ -756,9 +756,12 @@ function processCSV(rows){
     parsed.push({ dt, fecha: isoDate(dt), monto, estatus, metodo, hora: dt.getHours(), dow: (dt.getDay()+6)%7 }); // dow: 0=Mon
   });
 
-  // Separate: ventas reales, recompensas ($0.01), reembolsos
-  const ventas = parsed.filter(t => t.estatus==='PAGADO' && t.monto > 0.01);
-  const recompensas = parsed.filter(t => t.estatus==='PAGADO' && t.monto <= 0.01);
+  // Separate: ventas reales, recompensas, reembolsos
+  // Recompensa = monto <= $1 (ej. $0.01) O monto que termina en .01 (ej. $196.01),
+  // ya que ningún producto del menú tiene precio terminado en .01.
+  const esRecompensa = m => m <= 1 || Math.round((m % 1) * 100) === 1;
+  const ventas = parsed.filter(t => t.estatus==='PAGADO' && !esRecompensa(t.monto));
+  const recompensas = parsed.filter(t => t.estatus==='PAGADO' && esRecompensa(t.monto));
   const reembolsos = parsed.filter(t => t.estatus==='REEMBOLSADO');
   allVentas = ventas; // store globally for detail tab filtering
 
